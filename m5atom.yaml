@@ -1,0 +1,59 @@
+esphome:
+  name: rfid01
+  platform: ESP32
+  board: m5stack-core-esp32
+  includes:
+    - src/RFID_command.h
+    - M5RFID.h
+    - src/RFID_command.cpp
+    - src/RFID_command_basics.cpp
+      #libraries:
+      #- https://github.com/rubenbe/M5Unit-UHF-RFID
+
+wifi:
+  <<: !include ./wifi.yaml
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "M5Atomlite2 Fallback Hotspot"
+    password: "0yyQtzyIpw3z"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
+
+ota:
+  password: "srTcdPLRnv5wDnf"
+
+light:
+  - platform: fastled_clockless
+    chipset: SK6812
+    pin: 27
+    num_leds: 1
+    rgb_order: GRB
+    name: "FastLED Light"
+    effects:
+      - random:
+          name: Random Effect With Custom Values
+          transition_length: 5s
+          update_interval: 7s
+binary_sensor:
+  - platform: gpio
+    pin: 39
+    name: "Button"
+
+text_sensor:
+- platform: custom
+  lambda: |-
+    auto my_sensor = new M5RFID();
+    App.register_component(my_sensor);
+    return {my_sensor};
+
+  text_sensors:
+    name: "M5RFID"
