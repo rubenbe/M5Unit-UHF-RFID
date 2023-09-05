@@ -106,6 +106,7 @@ class UHF_RFID
     String Query_software_version();
     String Inquire_manufacturer();
     CardpropertiesInfo A_single_poll_of_instructions();
+    CardpropertiesInfo A_single_poll_of_instructions_split(int *state);
     ManyInfo Multiple_polling_instructions(UWORD cycle_nub);
     String Stop_the_multiple_poll_directive();
     String Set_the_select_parameter_directive(String str_epc, UBYTE SelParam = 0x01, UDOUBLE Ptr = 0x20, UBYTE MaskLen = 0x60, UBYTE Truncate = 0x0);

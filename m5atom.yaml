@@ -115,9 +115,7 @@ script:
                  - output.set_level:
                      id: buzzer
                      level: "50%"
-                 - delay: "100ms"
+                 - delay: "70ms"
                  - output.set_level:
                      id: buzzer
                      level: "0%"
-                 - delay: "50ms"
-           - delay: "500ms"

@@ -74,13 +74,16 @@ String UHF_RFID::Inquire_manufacturer()
    Used for a single polling instruction
   用于单次轮询指令
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions()
+CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions_split(int *state)
 {
-  UBYTE a[5] = {0xBB, 0x02, 0x22, 0x00, 0x11};
   CardpropertiesInfo card;
+	if(*state == false){
+		*state = true;
 
   Sendcommand(3);
-  Delay(50);
+	}else{
+		*state = false;
+  //Delay(50);
   Readcallback();
 
   if (DelayScanwarning())
@@ -94,6 +97,7 @@ CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions()
   }
   else
   {
+  UBYTE a[5] = {0xBB, 0x02, 0x22, 0x00, 0x11};
     if (Verify_the_return(a, 5))
     {
       Return_to_convert(1);
@@ -107,6 +111,13 @@ CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions()
       return card;
     }
   }
+}
+    card._RSSI = "";
+    card._PC = "";
+    card._EPC = "";
+    card._CRC = "";
+    card._ERROR = DATA_Str_Serial;
+    return card;
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

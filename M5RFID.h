@@ -6,13 +6,15 @@
 UHF_RFID RFID;
 CardpropertiesInfo card;
 ManyInfo cards;
+int scanstate = 0;
 
 class M5RFID : public PollingComponent, public TextSensor {
 	public:
-		M5RFID() : PollingComponent(200) {}
+		M5RFID() : PollingComponent(50) {}
 
 	float get_setup_priority() const override { return esphome::setup_priority::LATE; }
 	void setup() override {
+    scanstate = 0;
     Serial.println("Starting setup");
     RFID._debug = 1;
     Serial2.begin(115200, SERIAL_8N1, 32, 26);
@@ -59,7 +61,7 @@ class M5RFID : public PollingComponent, public TextSensor {
     /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      Query the card information once 查询一次卡的信息例子
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    card = RFID.A_single_poll_of_instructions();
+    card = RFID.A_single_poll_of_instructions_split(&scanstate);
     if (card._ERROR.length() != 0) {
         //Serial.println(card._ERROR);
     } else {
