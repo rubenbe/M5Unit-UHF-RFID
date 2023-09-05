@@ -61,10 +61,10 @@ class M5RFID : public PollingComponent, public TextSensor {
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
     card = RFID.A_single_poll_of_instructions();
     if (card._ERROR.length() != 0) {
-        Serial.println(card._ERROR);
+        //Serial.println(card._ERROR);
     } else {
         if (card._EPC.length() == 24) {
-            Serial.println("RSSI :" + card._RSSI);
+            Serial.println("RSSI :" + card._RSSI + "," + card._EPC);
             //Serial.println("PC :" + card._PC);
             //Serial.println("EPC :" + card._EPC);
             //Serial.println("CRC :" + card._CRC);
