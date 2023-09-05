@@ -47,6 +47,18 @@ binary_sensor:
   - platform: gpio
     pin: 39
     name: "Button"
+    on_release:
+      - script.execute: melody
+
+        #binary_sensor:
+        #  - platform: gpio
+        #    pin:
+        #      number: 39
+        #      inverted: true
+        #    id: wiggle_button
+        #    name: "Wiggle Button"
+        #    on_release:
+        #    - switch.toggle: wiggler
 
 text_sensor:
 - platform: custom
