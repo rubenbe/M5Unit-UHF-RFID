@@ -25,9 +25,12 @@ captive_portal:
 logger:
 
 # Enable Home Assistant API
-api:
-  encryption:
-    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
+#api:
+#  encryption:
+#    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
+mqtt:
+  broker: 10.17.0.2
+  topic_prefix: rfid/01/
 
 ota:
   - platform: esphome
