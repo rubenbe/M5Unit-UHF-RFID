@@ -67,8 +67,10 @@ void M5RFIDTextSensor::update() {
     // Error occurred, but don't log every time to avoid spam
   } else {
     if (card._EPC.length() == 24) {
-      ESP_LOGD(TAG, "RSSI: %s, EPC: %s", card._RSSI.c_str(), card._EPC.c_str());
-      this->publish_state(card._EPC.c_str());
+      ESP_LOGI(TAG, "RSSI: %s, EPC: %s", card._RSSI.c_str(), card._EPC.c_str());
+      char buffer[256];
+      snprintf(buffer, sizeof(buffer), "%lu,%s", esp_timer_get_time(),card._EPC.c_str());
+      this->publish_state(buffer);
     }
   }
   RFID.clean_data();  // Empty the data after using it

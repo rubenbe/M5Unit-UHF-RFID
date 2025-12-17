@@ -9,7 +9,7 @@ namespace m5rfid {
 
 class M5RFIDTextSensor : public PollingComponent, public text_sensor::TextSensor {
  public:
-  M5RFIDTextSensor() : PollingComponent(50) {}
+  M5RFIDTextSensor() : PollingComponent(50 /*ms*/) {}
 
   float get_setup_priority() const override { return esphome::setup_priority::LATE; }
   
