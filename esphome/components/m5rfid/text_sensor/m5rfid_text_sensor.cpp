@@ -55,6 +55,8 @@ void M5RFIDTextSensor::setup() {
   } else {
     ESP_LOGW(TAG, "UHF_RFID connection verification failed");
   }
+  ESP_LOGW(TAG, "Set up work area %s", RFID.Set_up_work_area(0x03 /*EU*/));
+  ESP_LOGW(TAG, "Set up transmission power %s", RFID.Set_transmission_Power(/*2000*/));
 }
 
 void M5RFIDTextSensor::update() {
