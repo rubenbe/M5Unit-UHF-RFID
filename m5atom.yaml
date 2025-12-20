@@ -5,8 +5,8 @@ esphome:
     - M5RFID.h
     - src/RFID_command.cpp
     - src/RFID_command_basics.cpp
-      #libraries:
-      #- https://github.com/rubenbe/M5Unit-UHF-RFID
+    - src/my_helpers.h
+    - src/my_helpers.cpp
 
 esp32:
   board: m5stack-core-esp32
