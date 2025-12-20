@@ -71,7 +71,7 @@ void M5RFIDTextSensor::update() {
       //char buffer[256];
       //snprintf(buffer, sizeof(buffer), "%lu,%s", esp_timer_get_time(),card._EPC.c_str());
       //this->publish_state(buffer);
-      this->publish_state(MyHelper::format_csv(esp_timer_get_time(),card._EPC.c_str()));
+      this->publish_state(MyHelper::format_csv(esp_timer_get_time(),card._EPC.c_str(),MyHelper::convert_rssi(card._RSSI.c_str())));
     }
   }
   RFID.clean_data();  // Empty the data after using it
