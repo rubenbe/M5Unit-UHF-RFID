@@ -36,3 +36,6 @@ backtrace:
   -v $PWD:/config:z \
   docker.io/esphome/esphome \
   logs m5atom.yaml
+
+clean:
+  rm -rf .esphome
