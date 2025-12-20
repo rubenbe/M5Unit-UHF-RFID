@@ -8,21 +8,26 @@ esphome:
     - src/my_helpers.h
     - src/my_helpers.cpp
 
-globals:
-  - id: old_red
-    type: float
-    initial_value: '0.0'
-  - id: old_green
-    type: float
-    initial_value: '0.0'
-  - id: old_blue
-    type: float
-    initial_value: '0.0'
+#globals:
+#  - id: old_red
+#    type: float
+#    initial_value: '0.0'
+#  - id: old_green
+#    type: float
+#    initial_value: '0.0'
+#  - id: old_blue
+#    type: float
+#    initial_value: '0.0'
+#  - id: old_brightness
+#    type: float
+#    initial_value: '0.0'
 
 
 
 esp32:
   board: m5stack-core-esp32
+  framework:
+    type: arduino
 
 wifi:
   <<: !include ./wifi.yaml
@@ -38,9 +43,9 @@ captive_portal:
 logger:
 
 # Enable Home Assistant API
-#api:
-#  encryption:
-#    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
+api:
+  encryption:
+    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
 mqtt:
   broker: 10.17.0.2
   topic_prefix: r
@@ -65,6 +70,7 @@ light:
     rgb_order: GRB
     name: "FastLED Light"
     id: fastled_light
+    restore_mode: ALWAYS_OFF
     effects:
       - random:
           name: Random Effect With Custom Values
@@ -124,15 +130,15 @@ script:
   - id: flash_led_white
     then:
       # Store current LED color
-      - lambda: |-
-          auto light = id(fastled_light);
-          id(old_red) = light->remote_values.get_red();
-          id(old_green) = light->remote_values.get_green();
-          id(old_blue) = light->remote_values.get_blue();
+      #- lambda: |-
+      #    auto light = id(fastled_light);
+      #    id(old_red) = light->remote_values.get_red();
+      #    id(old_green) = light->remote_values.get_green();
+      #    id(old_blue) = light->remote_values.get_blue();
+      #    id(old_brightness) = light->remote_values.get_brightness();
       
-      # Flash white 3 times
       - repeat:
-          count: 3
+          count: 1
           then:
             - light.turn_on:
                 id: fastled_light
@@ -141,20 +147,14 @@ script:
                 blue: 100%
                 brightness: 100%
                 transition_length: 0s
-            - delay: 200ms
-            - light.turn_on:
+            - delay: 50ms
+            - light.turn_off:
                 id: fastled_light
-                red: 0%
-                green: 0%
-                blue: 0%
-                brightness: 0%
                 transition_length: 0s
-            - delay: 100ms
-      
       # Restore original color
-      - lambda: |-
-          auto light = id(fastled_light);
-          light->make_call().set_red(id(old_red)).set_green(id(old_green)).set_blue(id(old_blue)).perform();
+      #- lambda: |-
+      #    auto light = id(fastled_light);
+      #    light->make_call().set_red(id(old_red)).set_green(id(old_green)).set_blue(id(old_blue)).set_brightness(id(old_brightness)).perform();
 
   - id: melody
     then:
@@ -162,62 +162,9 @@ script:
       - output.turn_on: buzzer
       - output.ledc.set_frequency:
           id: buzzer
-          frequency: "1000Hz"
+          frequency: "4000Hz"
       - output.set_level:
           id: buzzer
           level: "50%"
-      - delay: "100ms"
-      - output.set_level:
-          id: buzzer
-          level: "0%"
       - delay: "50ms"
-      
-      - output.ledc.set_frequency:
-          id: buzzer
-          frequency: "1500Hz"
-      - output.set_level:
-          id: buzzer
-          level: "50%"
-      - delay: "100ms"
-      - output.set_level:
-          id: buzzer
-          level: "0%"
-      - delay: "50ms"
-      
-      - output.ledc.set_frequency:
-          id: buzzer
-          frequency: "2000Hz"
-      - output.set_level:
-          id: buzzer
-          level: "50%"
-      - delay: "200ms"
-      - output.set_level:
-          id: buzzer
-          level: "0%"
-      - delay: "100ms"
-      
-      - output.ledc.set_frequency:
-          id: buzzer
-          frequency: "1500Hz"
-      - output.set_level:
-          id: buzzer
-          level: "50%"
-      - delay: "100ms"
-      - output.set_level:
-          id: buzzer
-          level: "0%"
-      - delay: "50ms"
-      
-      - output.ledc.set_frequency:
-          id: buzzer
-          frequency: "1000Hz"
-      - output.set_level:
-          id: buzzer
-          level: "50%"
-      - delay: "200ms"
-      - output.set_level:
-          id: buzzer
-          level: "0%"
-      - delay: "100ms"
-      
       - output.turn_off: buzzer
