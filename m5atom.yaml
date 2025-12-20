@@ -30,7 +30,7 @@ logger:
 #    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
 mqtt:
   broker: 10.17.0.2
-  topic_prefix: rfid/01/
+  topic_prefix: r
 
 ota:
   - platform: esphome
@@ -73,7 +73,7 @@ external_components:
 
 text_sensor:
   - platform: m5rfid
-    name: "M5RFID"
+    name: "01"
     id: m5rfid_sensor
     on_value:
       then:
