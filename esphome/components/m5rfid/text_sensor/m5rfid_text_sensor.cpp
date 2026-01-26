@@ -25,26 +25,24 @@ void M5RFIDTextSensor::setup() {
   RFID._debug = 1;
   Serial2.begin(115200, SERIAL_8N1, 32, 26);
 
-  // UHF_RFID set UHF_RFID设置
-  ESP_LOGD(TAG, "Setup 1");
+  // Initial delay to let Serial2 stabilize
+  delay(100);
+
+  ESP_LOGD(TAG, "Querying manufacturer...");
   ESP_LOGD(TAG, "Manufacturer: %s", RFID.Inquire_manufacturer().c_str());
-  ESP_LOGD(TAG, "Setup 2");
-  RFID.Delay(100);
-  ESP_LOGD(TAG, "Setup 4");
+  delay(100);  // yield to FreeRTOS
   RFID.Readcallback();
   RFID.clean_data();
 
   // Prompted to connect to UHF_RFID 提示连接UHF_RFID
   ESP_LOGI(TAG, "Please connect UHF_RFID to Port C");
 
-  // Determined whether to connect to UHF_RFID 判断是否连接UHF_RFID
-  String soft_version;
-  soft_version = RFID.Query_software_version();
+  // Check UHF_RFID connection
+  String soft_version = RFID.Query_software_version();
   int retry_count = 0;
   while (soft_version.indexOf("V2.3.5") == -1 && retry_count < 10) {
     RFID.clean_data();
-    RFID.Delay(150);
-    RFID.Delay(150);
+    delay(300);  // yield to FreeRTOS (was 2x RFID.Delay(150))
     soft_version = RFID.Query_software_version();
     retry_count++;
   }
@@ -56,12 +54,29 @@ void M5RFIDTextSensor::setup() {
   } else {
     ESP_LOGW(TAG, "UHF_RFID connection verification failed");
   }
-  ESP_LOGI(TAG, "Updating settings!!!!");
-  //RFID.Set_up_work_area(0x03 /*EU*/);
-  //RFID.Set_transmission_Power(2000);
-  ESP_LOGI(TAG, "Updated settings!!!!");
+  // Configure region: 0x03 = EU (865.1-868 MHz), 0x04 = China 800MHz
+  //ESP_LOGI(TAG, "Configuring region...");
+  //String result = RFID.Set_up_work_area(0x03);  // EU
+  //if (result.length() > 0) {
+  //  ESP_LOGI(TAG, "Work area set: %s", result.c_str());
+  //} else {
+  //  ESP_LOGW(TAG, "Failed to set work area");
+  //}
+  //delay(50);  // yield to FreeRTOS
+
+  // Verify settings (only during setup, not in update loop!)
+  ReadInfo info = RFID.Read_working_area();
+  ESP_LOGI(TAG, "Region code: %s", info.Region.c_str());
+
+  setup_complete_ = true;
+  ESP_LOGI(TAG, "Setup complete");
 }
 void M5RFIDTextSensor::update() {
+  // Don't run until setup is complete
+  if (!setup_complete_) {
+    return;
+  }
+
   // Cleanup old tags periodically
   cleanup_old_tags();
 
@@ -81,9 +96,9 @@ void M5RFIDTextSensor::update() {
     }
     RFID.clean_data();
 
-    // Small delay between burst polls to allow reader to settle
+    // Yield to FreeRTOS between polls (prevents watchdog/queue issues)
     if (i < burst_poll_cycles_ - 1) {
-      RFID.Delay(10);
+      delay(1);  // delay(1) yields to scheduler, unlike RFID.Delay()
     }
   }
 }

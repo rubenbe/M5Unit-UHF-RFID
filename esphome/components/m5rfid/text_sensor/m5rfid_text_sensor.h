@@ -32,13 +32,14 @@ class M5RFIDTextSensor : public PollingComponent, public text_sensor::TextSensor
 
  protected:
   int scanstate_ = 0;
+  bool setup_complete_ = false;  // Prevent update() before setup() finishes
 
   // Deduplication: EPC -> TagInfo
   std::map<std::string, TagInfo> seen_tags_;
 
   // Configuration
   uint32_t dedup_timeout_ms_ = 1000;  // Don't report same tag within 1 second
-  uint8_t burst_poll_cycles_ = 5;     // Number of rapid polls per update for burst detection
+  uint8_t burst_poll_cycles_ = 3;     // Reduced to avoid blocking too long
 
   // Helpers
   bool should_report_tag(const std::string &epc, int8_t rssi);
