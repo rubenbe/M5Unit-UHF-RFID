@@ -56,45 +56,10 @@ void M5RFIDTextSensor::setup() {
   } else {
     ESP_LOGW(TAG, "UHF_RFID connection verification failed");
   }
-  // Configure for EU/ETSI region
-  ESP_LOGI(TAG, "Configuring for EU/ETSI region...");
-
-  // Set work area to EU (0x03) - uses 865.1-868 MHz band
-  String result = RFID.Set_up_work_area(0x03);
-  if (result.length() > 0) {
-    ESP_LOGI(TAG, "Work area set to EU: %s", result.c_str());
-  } else {
-    ESP_LOGW(TAG, "Failed to set EU work area");
-  }
-  RFID.Delay(50);
-
-  // Enable automatic frequency hopping (required by ETSI)
-  result = RFID.Set_up_automatic_frequency_modulation(0xFF);
-  if (result.length() > 0) {
-    ESP_LOGI(TAG, "Auto frequency hopping enabled: %s", result.c_str());
-  } else {
-    ESP_LOGW(TAG, "Failed to enable frequency hopping");
-  }
-  RFID.Delay(50);
-
-  // Set transmission power to 20 dBm (100mW) - safe for EU/ETSI
-  // Max EU/ETSI is 2W ERP, but 20 dBm conducted is conservative and compliant
-  result = RFID.Set_transmission_Power(2000);
-  if (result.length() > 0) {
-    ESP_LOGI(TAG, "TX power set to 20 dBm: %s", result.c_str());
-  } else {
-    ESP_LOGW(TAG, "Failed to set TX power");
-  }
-  RFID.Delay(50);
-
-  // Read back and log current settings for verification
-  ReadInfo info = RFID.Read_working_area();
-  ESP_LOGI(TAG, "Current region: %s", info.Region.c_str());
-
-  info = RFID.Read_transmitting_power();
-  ESP_LOGI(TAG, "Current TX power: %s", info.Pow.c_str());
-
-  ESP_LOGI(TAG, "EU/ETSI configuration complete");
+  ESP_LOGI(TAG, "Updating settings!!!!");
+  //RFID.Set_up_work_area(0x03 /*EU*/);
+  //RFID.Set_transmission_Power(2000);
+  ESP_LOGI(TAG, "Updated settings!!!!");
 }
 void M5RFIDTextSensor::update() {
   // Read one
