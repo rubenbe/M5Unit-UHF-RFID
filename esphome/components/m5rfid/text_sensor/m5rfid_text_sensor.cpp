@@ -56,8 +56,10 @@ void M5RFIDTextSensor::setup() {
   } else {
     ESP_LOGW(TAG, "UHF_RFID connection verification failed");
   }
-  //ESP_LOGW(TAG, "Set up work area %s", RFID.Set_up_work_area(0x03 /*EU*/));
-  //ESP_LOGW(TAG, "Set up transmission power %s", RFID.Set_transmission_Power(/*2000*/));
+  ESP_LOGI(TAG, "Updating settings!!!!");
+  //RFID.Set_up_work_area(0x03 /*EU*/);
+  //RFID.Set_transmission_Power(2000);
+  ESP_LOGI(TAG, "Updated settings!!!!");
 }
 void M5RFIDTextSensor::update() {
   // Read one
@@ -68,10 +70,7 @@ void M5RFIDTextSensor::update() {
   } else {
     if (card._EPC.length() == 24) {
       ESP_LOGI(TAG, "RSSI: %s, EPC: %s", card._RSSI.c_str(), card._EPC.c_str());
-      //char buffer[256];
-      //snprintf(buffer, sizeof(buffer), "%lu,%s", esp_timer_get_time(),card._EPC.c_str());
-      //this->publish_state(buffer);
-      this->publish_state(MyHelper::format_csv(esp_timer_get_time(),card._EPC.c_str(),MyHelper::convert_rssi(card._RSSI.c_str())));
+      this->publish_state(MyHelper::format_csv(card._EPC.c_str(),MyHelper::convert_rssi(card._RSSI.c_str())));
     }
   }
   RFID.clean_data();  // Empty the data after using it
