@@ -62,22 +62,82 @@ void M5RFIDTextSensor::setup() {
   ESP_LOGI(TAG, "Updated settings!!!!");
 }
 void M5RFIDTextSensor::update() {
-  // Read one
-  //  A read/write operation specifies a particular card
-  card = RFID.A_single_poll_of_instructions_split(&scanstate_);
-  if (card._ERROR.length() != 0) {
-    // Error occurred, but don't log every time to avoid spam
-  } else {
-    if (card._EPC.length() == 24) {
-      ESP_LOGI(TAG, "RSSI: %s, EPC: %s", card._RSSI.c_str(), card._EPC.c_str());
-      this->publish_state(MyHelper::format_csv(card._EPC.c_str(),MyHelper::convert_rssi(card._RSSI.c_str())));
+  // Cleanup old tags periodically
+  cleanup_old_tags();
+
+  // Burst polling: do multiple rapid polls to catch all tags in range
+  for (uint8_t i = 0; i < burst_poll_cycles_; i++) {
+    // Use the non-split version for burst mode - it's synchronous but fast
+    card = RFID.A_single_poll_of_instructions();
+
+    if (card._ERROR.length() == 0 && card._EPC.length() == 24) {
+      std::string epc(card._EPC.c_str());
+      int8_t rssi = MyHelper::convert_rssi(card._RSSI.c_str());
+
+      if (should_report_tag(epc, rssi)) {
+        ESP_LOGI(TAG, "Tag detected - RSSI: %d dBm, EPC: %s", rssi, epc.c_str());
+        this->publish_state(MyHelper::format_csv(card._EPC.c_str(), rssi));
+      }
+    }
+    RFID.clean_data();
+
+    // Small delay between burst polls to allow reader to settle
+    if (i < burst_poll_cycles_ - 1) {
+      RFID.Delay(10);
     }
   }
-  RFID.clean_data();  // Empty the data after using it
+}
+
+bool M5RFIDTextSensor::should_report_tag(const std::string &epc, int8_t rssi) {
+  uint32_t now = millis();
+
+  auto it = seen_tags_.find(epc);
+  if (it == seen_tags_.end()) {
+    // New tag - add to map and report
+    TagInfo info;
+    info.epc = epc;
+    info.rssi = rssi;
+    info.first_seen = now;
+    info.last_seen = now;
+    seen_tags_[epc] = info;
+    return true;
+  }
+
+  // Existing tag - check if enough time has passed
+  TagInfo &info = it->second;
+  if (now - info.last_seen >= dedup_timeout_ms_) {
+    // Enough time passed, report again
+    info.rssi = rssi;
+    info.first_seen = now;
+    info.last_seen = now;
+    return true;
+  }
+
+  // Update last_seen but don't report (dedup)
+  info.last_seen = now;
+  info.rssi = rssi;  // Keep latest RSSI
+  return false;
+}
+
+void M5RFIDTextSensor::cleanup_old_tags() {
+  uint32_t now = millis();
+  // Remove tags not seen for 10x the dedup timeout (10 seconds by default)
+  uint32_t cleanup_threshold = dedup_timeout_ms_ * 10;
+
+  for (auto it = seen_tags_.begin(); it != seen_tags_.end();) {
+    if (now - it->second.last_seen > cleanup_threshold) {
+      ESP_LOGD(TAG, "Cleanup: removing stale tag %s", it->first.c_str());
+      it = seen_tags_.erase(it);
+    } else {
+      ++it;
+    }
+  }
 }
 
 void M5RFIDTextSensor::dump_config() {
   ESP_LOGCONFIG(TAG, "M5RFID Text Sensor:");
+  ESP_LOGCONFIG(TAG, "  Burst poll cycles: %d", burst_poll_cycles_);
+  ESP_LOGCONFIG(TAG, "  Dedup timeout: %d ms", dedup_timeout_ms_);
   LOG_TEXT_SENSOR("  ", "EPC", this);
 }
 

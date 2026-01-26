@@ -71,8 +71,52 @@ String UHF_RFID::Inquire_manufacturer()
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   Used for a single polling instruction
-  用于单次轮询指令
+   Used for a single polling instruction (blocking/synchronous)
+  用于单次轮询指令（阻塞/同步）
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions()
+{
+  CardpropertiesInfo card;
+
+  Sendcommand(3);
+  Delay(50);
+  Readcallback();
+
+  if (DelayScanwarning())
+  {
+    card._RSSI = "";
+    card._PC = "";
+    card._EPC = "";
+    card._CRC = "";
+    card._ERROR = DATA_Str_Serial;
+    return card;
+  }
+
+  UBYTE a[5] = {0xBB, 0x02, 0x22, 0x00, 0x11};
+  if (Verify_the_return(a, 5))
+  {
+    Return_to_convert(1);
+
+    card._RSSI = DATA_Str_M5led.substring(10, 12);
+    card._PC = DATA_Str_M5led.substring(12, 16);
+    card._EPC = DATA_Str_M5led.substring(16, 40);
+    card._CRC = DATA_Str_M5led.substring(40, 44);
+    card._ERROR = "";
+
+    return card;
+  }
+
+  card._RSSI = "";
+  card._PC = "";
+  card._EPC = "";
+  card._CRC = "";
+  card._ERROR = DATA_Str_Serial;
+  return card;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Used for a single polling instruction (non-blocking/split)
+  用于单次轮询指令（非阻塞/分割）
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions_split(int *state)
 {
