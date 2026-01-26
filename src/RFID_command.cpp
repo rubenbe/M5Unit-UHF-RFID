@@ -79,7 +79,7 @@ CardpropertiesInfo UHF_RFID::A_single_poll_of_instructions()
   CardpropertiesInfo card;
 
   Sendcommand(3);
-  Delay(50);
+  Delay(49);
   Readcallback();
 
   if (DelayScanwarning())
