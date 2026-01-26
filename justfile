@@ -58,3 +58,23 @@ test:
 # Show firmware size
 size: compile
     @ls -lh .esphome/build/rfid01/.pioenvs/rfid01/firmware.bin 2>/dev/null || echo "Build first with: just compile"
+
+# Toolchain path (inside container, mounted from local .esphome)
+addr2line := "/config/.esphome/platformio/packages/toolchain-xtensa-esp-elf/bin/xtensa-esp32-elf-addr2line"
+elf := "/config/.esphome/build/rfid01/.pioenvs/rfid01/firmware.elf"
+
+# Decode a backtrace (paste the backtrace as argument)
+# Usage: just decode "Backtrace: 0x400d1234:0x3ffb1234 0x400d5678:0x3ffb5678"
+decode backtrace:
+    #!/usr/bin/env bash
+    addrs=$(echo "{{backtrace}}" | grep -oE '0x[0-9a-fA-F]+' | head -20 | tr '\n' ' ')
+    podman run --rm --security-opt label=disable --userns=host -v $PWD:/config:z \
+        --entrypoint {{addr2line}} {{image}} \
+        -pfiaC -e {{elf}} $addrs
+
+# Interactive backtrace decoder - enter addresses one per line
+decode-interactive:
+    @echo "Paste addresses (one per line, Ctrl+D when done):"
+    @podman run -i --rm --security-opt label=disable --userns=host -v $PWD:/config:z \
+        --entrypoint {{addr2line}} {{image}} \
+        -pfiaC -e {{elf}}
