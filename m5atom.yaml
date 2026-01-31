@@ -1,5 +1,7 @@
 esphome:
-  name: rfid01
+  #also change number below
+  #name: rfid01
+  name: rfid02
   includes:
     - src/RFID_command.h
     - M5RFID.h
@@ -34,7 +36,7 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "M5Atomlite2 Fallback Hotspot"
+    ssid: "BrutaalTracking Fallback Hotspot"
     password: "0yyQtzyIpw3z"
 
 captive_portal:
@@ -43,11 +45,12 @@ captive_portal:
 logger:
 
 # Enable Home Assistant API
-api:
-  encryption:
-    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
+#api:
+#  encryption:
+#    key: "ZrlVfKcHDpx7uRtPyGfvwao8D8aSyOgJVCvYvDQ6CKI="
 mqtt:
-  broker: 10.17.0.2
+  #broker: 10.17.0.2
+  broker: 10.80.0.1
   topic_prefix: r
   on_connect:
     then:
@@ -119,7 +122,8 @@ external_components:
 
 text_sensor:
   - platform: m5rfid
-    name: "01"
+    #name: "01"
+    name: "02"
     id: m5rfid_sensor
     on_value:
       then:
