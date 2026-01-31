@@ -1,7 +1,8 @@
+substitutions:
+  device_id: "02"  # Change to "01" or "02" to switch devices
+
 esphome:
-  #also change number below
-  #name: rfid01
-  name: rfid02
+  name: rfid${device_id}
   includes:
     - src/RFID_command.h
     - M5RFID.h
@@ -122,8 +123,7 @@ external_components:
 
 text_sensor:
   - platform: m5rfid
-    #name: "01"
-    name: "02"
+    name: "${device_id}"
     id: m5rfid_sensor
     on_value:
       then:
