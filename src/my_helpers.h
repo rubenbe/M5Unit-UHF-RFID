@@ -34,7 +34,7 @@ struct MyHelper {
 
     static int8_t convert_rssi(const char* rssi_str){
         int rssi_hex = strtol(rssi_str, nullptr, 16);
-        printf("%d\n", rssi_hex);
+        //printf("%d\n", rssi_hex);
         return static_cast<int8_t>(rssi_hex);
     }
 };
