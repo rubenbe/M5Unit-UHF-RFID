@@ -5,13 +5,14 @@ default:
     @just --list
 
 # Configuration: just target=m5atom compile
+#                just device=/dev/ttyACM0 upload
 target := ""
 config := target + ".yaml"
 
 _check-target:
     @test -n "{{target}}" || { echo "Specify target: just target=m5atom or just target=m5core"; exit 1; }
 image := "docker.io/esphome/esphome"
-device := "/dev/ttyUSB0"
+device := env("ESPHOME_DEVICE", "/dev/ttyUSB0")
 
 # Common podman options
 podman_opts := "-it --rm --security-opt label=disable --userns=host -v $PWD:/config:z"
