@@ -4,8 +4,12 @@
 default:
     @just --list
 
-# Configuration
-config := "m5atom.yaml"
+# Configuration: just target=m5atom compile
+target := ""
+config := target + ".yaml"
+
+_check-target:
+    @test -n "{{target}}" || { echo "Specify target: just target=m5atom or just target=m5core"; exit 1; }
 image := "docker.io/esphome/esphome"
 device := "/dev/ttyUSB0"
 
@@ -13,27 +17,27 @@ device := "/dev/ttyUSB0"
 podman_opts := "-it --rm --security-opt label=disable --userns=host -v $PWD:/config:z"
 
 # Compile the firmware (no upload)
-compile:
+compile: _check-target
     podman run {{podman_opts}} {{image}} compile {{config}}
 
 # Validate the ESPHome config
-validate:
+validate: _check-target
     podman run {{podman_opts}} {{image}} config {{config}}
 
 # Build and upload firmware via USB
-upload:
+upload: _check-target
     podman run {{podman_opts}} --device={{device}} {{image}} upload {{config}}
 
 # Build and upload, then show logs
-run:
+run: _check-target
     podman run {{podman_opts}} --device={{device}} {{image}} run {{config}}
 
 # Show device logs
-logs:
+logs: _check-target
     podman run {{podman_opts}} --device={{device}} {{image}} logs {{config}}
 
 # Upload via OTA (over-the-air)
-ota:
+ota: _check-target
     podman run {{podman_opts}} {{image}} upload --device OTA {{config}}
 
 # Interactive shell in container
