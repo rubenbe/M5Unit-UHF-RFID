@@ -53,6 +53,7 @@ mqtt:
   #broker: 10.17.0.2
   broker: 10.80.0.1
   topic_prefix: r
+  client_id: rfid${device_id}
   on_connect:
     then:
       - light.turn_on:
