@@ -278,7 +278,11 @@ text_sensor:
                     if (times.size() < 100) {
                       times[epc] = std::make_pair(ts_str, ts_str);
                       id(tag_order).insert(id(tag_order).begin(), epc);
-                      sd_append_tag(ts_full, epc.c_str());
+                      if (!id(boot_logged)) {
+                        id(boot_logged) = true;
+                        sd_append_tag(0, ts_full, "BOOT");
+                      }
+                      sd_append_tag((int)times.size(), ts_full, epc.c_str());
                     }
                   } else {
                     it->second.second = ts_str;
@@ -433,13 +437,6 @@ interval:
           char title[48];
           const char *sd = sd_ready ? " [SD]" : "";
           if (now.is_valid()) {
-            if (!id(boot_logged)) {
-              id(boot_logged) = true;
-              char ts[20];
-              snprintf(ts, sizeof(ts), "%04d-%02d-%02d %02d:%02d:%02d",
-                       now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
-              sd_append_tag(ts, "BOOT");
-            }
             snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d%s",
                      (int)id(tag_times).size(), now.hour, now.minute, now.second, sd);
           } else {

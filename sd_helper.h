@@ -47,21 +47,21 @@ inline bool sd_init() {
     } else {
         f = fopen(SD_TAG_FILE, "w");
         if (f) {
-            fprintf(f, "timestamp,epc\n");
+            fprintf(f, "count,timestamp,epc\n");
             fclose(f);
         }
     }
     return true;
 }
 
-inline bool sd_append_tag(const char* timestamp, const char* epc) {
+inline bool sd_append_tag(int count, const char* timestamp, const char* epc) {
     if (!sd_ready) return false;
     FILE *f = fopen(SD_TAG_FILE, "a");
     if (!f) {
         ESP_LOGW("sd", "Failed to open " SD_TAG_FILE);
         return false;
     }
-    fprintf(f, "%s,%s\n", timestamp, epc);
+    fprintf(f, "%d,%s,%s\n", count, timestamp, epc);
     fclose(f);
     return true;
 }
