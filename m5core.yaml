@@ -26,16 +26,21 @@ esphome:
     - priority: -100
       then:
         - lambda: |-
-            struct CsvHandler : public esphome::web_server_idf::AsyncWebHandler {
+            struct SdCsvHandler : public esphome::web_server_idf::AsyncWebHandler {
+              std::string url_path;
+              std::string sd_path;
+              std::string filename;
+              SdCsvHandler(const char *url, const char *sd, const char *fn)
+                : url_path(url), sd_path(sd), filename(fn) {}
               bool canHandle(esphome::web_server_idf::AsyncWebServerRequest *request) const override {
-                return request->url() == "/tags.csv";
+                return request->url() == url_path;
               }
               void handleRequest(esphome::web_server_idf::AsyncWebServerRequest *request) override {
                 if (!sd_ready) {
                   request->send(503, "text/plain", "SD card not available");
                   return;
                 }
-                FILE *f = fopen(SD_TAG_FILE, "r");
+                FILE *f = fopen(sd_path.c_str(), "r");
                 if (!f) {
                   request->send(404, "text/plain", "File not found");
                   return;
@@ -46,12 +51,15 @@ esphome:
                 std::string content(sz, '\0');
                 fread(&content[0], 1, sz, f);
                 fclose(f);
+                std::string disp = "attachment; filename=\"" + filename + "\"";
                 auto *resp = request->beginResponse(200, "text/csv", content);
-                resp->addHeader("Content-Disposition", "attachment; filename=\"tags.csv\"");
+                resp->addHeader("Content-Disposition", disp.c_str());
                 request->send(resp);
               }
             };
-            id(web_base)->get_server()->addHandler(new CsvHandler());
+            auto *srv = id(web_base)->get_server();
+            srv->addHandler(new SdCsvHandler("/tags.csv", SD_TAG_FILE, "tags.csv"));
+            srv->addHandler(new SdCsvHandler("/runners.csv", SD_RUNNERS_FILE, "runners.csv"));
 
 esp32:
   board: m5stack-core2
