@@ -58,6 +58,21 @@ time:
     id: sntp_time
     timezone: Europe/Warsaw
 
+datetime:
+  - platform: template
+    name: "Set RTC"
+    id: rtc_set
+    type: datetime
+    optimistic: true
+    on_value:
+      - lambda: |-
+          struct timeval tv;
+          tv.tv_sec = x.timestamp;
+          tv.tv_usec = 0;
+          settimeofday(&tv, nullptr);
+          ESP_LOGI("rtc", "RTC set to %04d-%02d-%02d %02d:%02d:%02d",
+                   x.year, x.month, x.day_of_month, x.hour, x.minute, x.second);
+
 # TBD: Disable for production
 web_server:
   port: 80
