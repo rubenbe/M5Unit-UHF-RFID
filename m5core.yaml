@@ -423,14 +423,22 @@ interval:
       - lambda: |-
           auto now = id(rtc_time).now();
           char title[48];
-          const char *sd = sd_ready ? " [SD]" : "";
           if (now.is_valid()) {
-            snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d%s",
-                     (int)id(tag_times).size(), now.hour, now.minute, now.second, sd);
+            snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d",
+                     (int)id(tag_times).size(), now.hour, now.minute, now.second);
           } else {
-            snprintf(title, sizeof(title), "RFID Tags (%d)%s", (int)id(tag_times).size(), sd);
+            snprintf(title, sizeof(title), "RFID Tags (%d)", (int)id(tag_times).size());
           }
           lv_label_set_text(id(lbl_title), title);
+
+          // SD indicator: green if OK, red if error, hidden if not attempted
+          if (sd_ready) {
+            lv_label_set_text(id(lbl_sd), "[SD]");
+            lv_obj_set_style_text_color(id(lbl_sd), lv_color_hex(0x00E676), 0);
+          } else if (sd_failed) {
+            lv_label_set_text(id(lbl_sd), "[SD]");
+            lv_obj_set_style_text_color(id(lbl_sd), lv_color_hex(0xFF0000), 0);
+          }
 
           // Auto-off backlight 30s after last tag read
           if (id(last_tag_ms) > 0 &&
@@ -540,9 +548,14 @@ lvgl:
             widgets:
               - label:
                   id: lbl_title
-                  align: TOP_MID
+                  align: TOP_LEFT
                   text: "RFID Tags (0)"
                   text_color: 0x00E676
+                  text_font: roboto
+              - label:
+                  id: lbl_sd
+                  align: TOP_RIGHT
+                  text: ""
                   text_font: roboto
               - label:
                   id: lbl_tags

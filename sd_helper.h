@@ -4,6 +4,7 @@
 #include "driver/sdspi_host.h"
 #include <cstdio>
 #include <cstring>
+#include <sys/stat.h>
 #include <map>
 #include <string>
 
@@ -13,6 +14,7 @@
 #define SD_RUNNERS_FILE SD_MOUNT "/runners.csv"
 
 static bool sd_ready = false;
+static bool sd_failed = false;
 static std::map<std::string, std::string> runners;
 static sdmmc_card_t *sd_card = nullptr;
 
@@ -39,6 +41,7 @@ inline bool sd_init() {
     esp_err_t ret = esp_vfs_fat_sdspi_mount(SD_MOUNT, &host, &slot, &mount_cfg, &sd_card);
     if (ret != ESP_OK) {
         ESP_LOGW("sd", "SD mount failed: %s", esp_err_to_name(ret));
+        sd_failed = true;
         return false;
     }
 
@@ -96,10 +99,13 @@ inline bool sd_append_tag(int count, const char* timestamp, const char* epc, con
     if (!sd_ready) return false;
     FILE *f = fopen(SD_TAG_FILE, "a");
     if (!f) {
-        ESP_LOGW("sd", "Failed to open " SD_TAG_FILE);
+        ESP_LOGW("sd", "SD write failed, card removed?");
+        sd_ready = false;
+        sd_failed = true;
         return false;
     }
     fprintf(f, "%d,%s,%s,%s\n", count, timestamp, epc, name);
     fclose(f);
     return true;
 }
+
