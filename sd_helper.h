@@ -67,8 +67,7 @@ inline void sd_load_runners() {
         return;
     }
     char line[128];
-    // Skip header line
-    if (fgets(line, sizeof(line), f) == nullptr) { fclose(f); return; }
+    bool first = true;
     while (fgets(line, sizeof(line), f)) {
         char *comma = strchr(line, ',');
         if (!comma) continue;
@@ -77,6 +76,11 @@ inline void sd_load_runners() {
         // Trim CR/LF
         char *nl = strchr(name, '\n'); if (nl) *nl = '\0';
         char *cr = strchr(name, '\r'); if (cr) *cr = '\0';
+        // Skip header if present
+        if (first) {
+            first = false;
+            if (strcasecmp(line, "epc") == 0) continue;
+        }
         runners[std::string(line)] = std::string(name);
     }
     fclose(f);
