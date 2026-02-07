@@ -23,6 +23,35 @@ esphome:
         - lambda: |-
             auto cause = esp_sleep_get_wakeup_cause();
             ESP_LOGW("wakeup", "Wakeup cause: %d", (int)cause);
+    - priority: -100
+      then:
+        - lambda: |-
+            struct CsvHandler : public esphome::web_server_idf::AsyncWebHandler {
+              bool canHandle(esphome::web_server_idf::AsyncWebServerRequest *request) const override {
+                return request->url() == "/tags.csv";
+              }
+              void handleRequest(esphome::web_server_idf::AsyncWebServerRequest *request) override {
+                if (!sd_ready) {
+                  request->send(503, "text/plain", "SD card not available");
+                  return;
+                }
+                FILE *f = fopen(SD_TAG_FILE, "r");
+                if (!f) {
+                  request->send(404, "text/plain", "File not found");
+                  return;
+                }
+                fseek(f, 0, SEEK_END);
+                size_t sz = ftell(f);
+                fseek(f, 0, SEEK_SET);
+                std::string content(sz, '\0');
+                fread(&content[0], 1, sz, f);
+                fclose(f);
+                auto *resp = request->beginResponse(200, "text/csv", content);
+                resp->addHeader("Content-Disposition", "attachment; filename=\"tags.csv\"");
+                request->send(resp);
+              }
+            };
+            id(web_base)->get_server()->addHandler(new CsvHandler());
 
 esp32:
   board: m5stack-core2
@@ -85,6 +114,9 @@ datetime:
       - pcf8563.write_time: rtc_time
 
 # TBD: Disable for production
+web_server_base:
+  id: web_base
+
 web_server:
   port: 80
 
