@@ -9,6 +9,7 @@ esphome:
     - src/RFID_command_basics.cpp
     - src/my_helpers.h
     - src/my_helpers.cpp
+    - sd_helper.h
   on_boot:
     - priority: 600
       then:
@@ -16,6 +17,7 @@ esphome:
         - light.turn_on:
             id: backlight_light
             brightness: !lambda return id(saved_brightness);
+        - lambda: 'sd_init();'
     - priority: 800
       then:
         - lambda: |-
@@ -212,11 +214,14 @@ text_sensor:
             auto comma = val.find(',');
             std::string epc = (comma != std::string::npos) ? val.substr(0, comma) : val;
 
-            // Timestamp
+            // Timestamps
             char ts[9] = "??:??:??";
+            char ts_full[20] = "????-??-?? ??:??:??";
             auto now = id(rtc_time).now();
             if (now.is_valid()) {
               snprintf(ts, sizeof(ts), "%02d:%02d:%02d", now.hour, now.minute, now.second);
+              snprintf(ts_full, sizeof(ts_full), "%04d-%02d-%02d %02d:%02d:%02d",
+                       now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
             }
             std::string ts_str(ts);
 
@@ -227,6 +232,7 @@ text_sensor:
               if (times.size() < 100) {
                 times[epc] = std::make_pair(ts_str, ts_str);
                 id(tag_order).insert(id(tag_order).begin(), epc);
+                sd_append_tag(ts_full, epc.c_str());
               }
             } else {
               it->second.second = ts_str;
@@ -352,12 +358,13 @@ interval:
     then:
       - lambda: |-
           auto now = id(rtc_time).now();
-          char title[40];
+          char title[48];
+          const char *sd = sd_ready ? " [SD]" : "";
           if (now.is_valid()) {
-            snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d",
-                     (int)id(tag_times).size(), now.hour, now.minute, now.second);
+            snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d%s",
+                     (int)id(tag_times).size(), now.hour, now.minute, now.second, sd);
           } else {
-            snprintf(title, sizeof(title), "RFID Tags (%d)", (int)id(tag_times).size());
+            snprintf(title, sizeof(title), "RFID Tags (%d)%s", (int)id(tag_times).size(), sd);
           }
           lv_label_set_text(id(lbl_title), title);
 
