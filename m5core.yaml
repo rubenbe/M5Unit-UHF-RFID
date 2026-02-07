@@ -53,6 +53,11 @@ wifi:
 
 captive_portal:
 
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Warsaw
+
 # TBD: Disable for production
 web_server:
   port: 80
@@ -113,6 +118,9 @@ globals:
     initial_value: '0.6'   # domyślna jasność po pierwszym starcie
   - id: tag_list
     type: std::vector<std::string>
+    restore_value: no
+  - id: unique_epcs
+    type: std::set<std::string>
     restore_value: no
 
 switch:
@@ -180,15 +188,35 @@ text_sensor:
             auto comma = val.find(',');
             std::string epc = (comma != std::string::npos) ? val.substr(0, comma) : val;
             std::string rssi = (comma != std::string::npos) ? val.substr(comma + 1) : "";
-            // Show last 8 hex chars of EPC + RSSI
+
+            // Track unique EPCs (max 100)
+            if (id(unique_epcs).size() < 100) {
+              id(unique_epcs).insert(epc);
+            }
+
+            // Timestamp
+            char ts[9] = "??:??:??";
+            auto now = id(sntp_time).now();
+            if (now.is_valid()) {
+              snprintf(ts, sizeof(ts), "%02d:%02d:%02d", now.hour, now.minute, now.second);
+            }
+
+            // Show last 8 hex chars of EPC + RSSI + timestamp
             std::string short_epc = (epc.length() > 8) ? epc.substr(epc.length() - 8) : epc;
-            std::string entry = short_epc + "  " + rssi + " dBm";
+            std::string entry = std::string(ts) + " " + short_epc + " " + rssi + "dBm";
+
             // Prepend new tag
             id(tag_list).insert(id(tag_list).begin(), entry);
-            // Cap at 8 entries
+            // Cap at 8 entries on screen
             while (id(tag_list).size() > 8) {
               id(tag_list).pop_back();
             }
+
+            // Update title with unique count
+            char title[32];
+            snprintf(title, sizeof(title), "RFID Tags (%d)", (int)id(unique_epcs).size());
+            lv_label_set_text(id(lbl_title), title);
+
             // Build display string
             std::string display;
             for (size_t i = 0; i < id(tag_list).size(); i++) {
@@ -395,8 +423,9 @@ lvgl:
             border_width: 0
             widgets:
               - label:
+                  id: lbl_title
                   align: TOP_MID
-                  text: "RFID Tags"
+                  text: "RFID Tags (0)"
                   text_color: 0x00E676
                   text_font: roboto
               - label:
