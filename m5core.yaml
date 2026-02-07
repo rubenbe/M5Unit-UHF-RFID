@@ -126,6 +126,16 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
 
+  - platform: template
+    name: "Buzzer"
+    id: buzzer_switch
+    optimistic: true
+    turn_on_action:
+      - rtttl.play:
+          rtttl: 'two_beeps:d=4,o=5,b=100:16e6,16p,16e6'
+    turn_off_action:
+      - rtttl.stop
+
 
 
 deep_sleep:
@@ -242,6 +252,10 @@ binary_sensor:
 
 
 output:
+  - platform: ledc
+    pin: GPIO2
+    id: buzzer_out
+
   - platform: template
     id: backlight_out
     type: float
@@ -250,6 +264,10 @@ output:
           ESP_LOGD("pwr", "Backlight write_action state=%.3f", state);
           // state: 0.0 .. 1.0
           id(axp_comp).set_brightness(state);
+
+rtttl:
+  output: buzzer_out
+  id: buzzer
 
 light:
   - platform: monochromatic
