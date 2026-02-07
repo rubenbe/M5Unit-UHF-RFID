@@ -201,10 +201,9 @@ switch:
     id: buzzer_switch
     optimistic: true
     turn_on_action:
-      - rtttl.play:
-          rtttl: 'two_beeps:d=4,o=5,b=100:16e6,16p,16e6'
+      - script.execute: melody
     turn_off_action:
-      - rtttl.stop
+      - lambda: 'id(spk)->stop();'
 
 
 
@@ -217,8 +216,25 @@ deep_sleep:
 script:
   - id: melody
     then:
-      - rtttl.play:
-          rtttl: 'two_beeps:d=4,o=5,b=100:16e6,16p,16e6'
+      - lambda: |-
+          // Two short beeps at ~E6 (1320 Hz), 16kHz mono 16-bit
+          static bool init = false;
+          static int16_t buf[2080];  // 800 + 480 + 800 samples
+          if (!init) {
+            init = true;
+            const int SR = 16000;
+            const float FREQ = 1320.0f;
+            int idx = 0;
+            for (int i = 0; i < 800; i++)  // 50ms beep
+              buf[idx++] = (int16_t)(8000.0f * sinf(2.0f * 3.14159f * FREQ * i / SR));
+            for (int i = 0; i < 480; i++)  // 30ms pause
+              buf[idx++] = 0;
+            for (int i = 0; i < 800; i++)  // 50ms beep
+              buf[idx++] = (int16_t)(8000.0f * sinf(2.0f * 3.14159f * FREQ * i / SR));
+          }
+          id(spk)->start();
+          id(spk)->play((const uint8_t *)buf, sizeof(buf));
+          id(spk)->finish();
 
   - id: power_off
     mode: single
@@ -327,10 +343,6 @@ binary_sensor:
 
 
 output:
-  - platform: ledc
-    pin: GPIO2
-    id: buzzer_out
-
   - platform: template
     id: backlight_out
     type: float
@@ -340,9 +352,18 @@ output:
           // state: 0.0 .. 1.0
           id(axp_comp).set_brightness(state);
 
-rtttl:
-  output: buzzer_out
-  id: buzzer
+i2s_audio:
+  i2s_bclk_pin: GPIO12
+  i2s_lrclk_pin: GPIO0
+
+speaker:
+  - platform: i2s_audio
+    id: spk
+    dac_type: external
+    i2s_dout_pin: GPIO2
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    channel: mono
 
 light:
   - platform: monochromatic
