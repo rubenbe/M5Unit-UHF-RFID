@@ -212,6 +212,19 @@ deep_sleep:
     inverted: true
 
 script:
+  - id: blink_led
+    mode: restart
+    then:
+      - lambda: |-
+          uint8_t reg;
+          id(axp_raw).read_byte(0x69, &reg);
+          id(axp_raw).write_byte(0x69, (reg & 0xC8) | 0x35);
+      - delay: 100ms
+      - lambda: |-
+          uint8_t reg;
+          id(axp_raw).read_byte(0x69, &reg);
+          id(axp_raw).write_byte(0x69, (reg & 0xF9) | 0x01);
+
   - id: power_off
     mode: single
     then:
@@ -243,6 +256,7 @@ text_sensor:
             condition:
               lambda: 'return id(rtc_time).now().is_valid();'
             then:
+              - script.execute: blink_led
               - lambda: |-
                   id(last_tag_ms) = millis();
                   if (!id(backlight_light).current_values.is_on()) {
