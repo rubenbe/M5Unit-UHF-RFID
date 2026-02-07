@@ -275,21 +275,22 @@ text_sensor:
                     order.insert(order.begin(), epc);
                   }
 
-                  // Build display string (max 8 visible rows)
-                  std::string display;
+                  // Build display strings (left: tag+name, right: times)
+                  std::string left, right;
                   auto &order = id(tag_order);
                   size_t limit = std::min(order.size(), (size_t)9);
                   for (size_t i = 0; i < limit; i++) {
-                    if (i > 0) display += "\n";
+                    if (i > 0) { left += "\n"; right += "\n"; }
                     auto &epc_key = order[i];
                     std::string short_epc = (epc_key.length() > 8) ? epc_key.substr(epc_key.length() - 8) : epc_key;
                     auto &t = times[epc_key];
                     std::string name = sd_lookup_runner(epc_key);
-                    display += short_epc;
-                    if (!name.empty()) display += " " + name;
-                    display += " " + t.first + "-" + t.second;
+                    left += short_epc;
+                    if (!name.empty()) left += " " + name;
+                    right += t.first + "-" + t.second;
                   }
-                  lv_label_set_text(id(lbl_tags), display.c_str());
+                  lv_label_set_text(id(lbl_tags), left.c_str());
+                  lv_label_set_text(id(lbl_times), right.c_str());
 
 sensor:
   - platform: axp2101
@@ -539,8 +540,15 @@ lvgl:
                   id: lbl_tags
                   align: TOP_LEFT
                   y: 28
-                  width: 304
                   text: "Waiting for tags..."
+                  text_color: 0xFFFFFF
+                  text_font: roboto
+              - label:
+                  id: lbl_times
+                  align: TOP_RIGHT
+                  y: 28
+                  text_align: RIGHT
+                  text: ""
                   text_color: 0xFFFFFF
                   text_font: roboto
 
