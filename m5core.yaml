@@ -2,6 +2,13 @@ esphome:
   name: m5core2
   friendly_name: M5Core2
   min_version: 2025.12.0
+  includes:
+    - src/RFID_command.h
+    - M5RFID.h
+    - src/RFID_command.cpp
+    - src/RFID_command_basics.cpp
+    - src/my_helpers.h
+    - src/my_helpers.cpp
   on_boot:
     - priority: 600
       then:
@@ -29,16 +36,6 @@ logger:
   logs:
     sensor: INFO
     text_sensor: INFO
-
-substitutions:
-  l1_entity: "light.ws_sypialnia_lozko_l1"
-  l2_entity: "light.ws_sypialnia_lozko_l2"
-  l3_entity: "light.ws_sypialnia_przedsionek_l2"
-  l4_entity: "light.sp_sypialnia_lampka_2"
-  l1_name: "Lozko 1"
-  l2_name: "Lozko 2"
-  l3_name: "Przedsionek l2"
-  l4_name: "Lampka"
 
 
 api:
@@ -73,17 +70,13 @@ i2c_device:
   i2c_id: bus_a
 
 external_components:
-  #- source: github://martydingo/esphome-axp192
   - source: github://Cyklon79/esphome-axp2101
     components: [ axp2101 ]
-
-#external_components:
-#  - source:
-#      #type: local
-#      #path: /config/esphome/my_components/esphome-axp2101/components
-#    components: [ axp2101 ]
-#    # TBD: Remove for production
     refresh: 0s
+  - source:
+      type: local
+      path: esphome/components
+    components: [m5rfid]
 
 globals:
   - id: battery_is_charging
@@ -118,6 +111,9 @@ globals:
     type: float
     restore_value: yes
     initial_value: '0.6'   # domyślna jasność po pierwszym starcie
+  - id: tag_list
+    type: std::vector<std::string>
+    restore_value: no
 
 switch:
   - platform: template
@@ -145,6 +141,11 @@ deep_sleep:
     inverted: true
 
 script:
+  - id: melody
+    then:
+      - rtttl.play:
+          rtttl: 'two_beeps:d=4,o=5,b=100:16e6,16p,16e6'
+
   - id: power_off
     mode: single
     then:
@@ -164,6 +165,37 @@ text_sensor:
   - platform: template
     name: "Battery Mode"
     id: battery_mode
+
+  - platform: m5rfid
+    name: "RFID"
+    id: m5rfid_sensor
+    rx_pin: 33
+    tx_pin: 32
+    on_value:
+      then:
+        - script.execute: melody
+        - lambda: |-
+            // Parse CSV: "EPC,RSSI"
+            std::string val = x;
+            auto comma = val.find(',');
+            std::string epc = (comma != std::string::npos) ? val.substr(0, comma) : val;
+            std::string rssi = (comma != std::string::npos) ? val.substr(comma + 1) : "";
+            // Show last 8 hex chars of EPC + RSSI
+            std::string short_epc = (epc.length() > 8) ? epc.substr(epc.length() - 8) : epc;
+            std::string entry = short_epc + "  " + rssi + " dBm";
+            // Prepend new tag
+            id(tag_list).insert(id(tag_list).begin(), entry);
+            // Cap at 8 entries
+            while (id(tag_list).size() > 8) {
+              id(tag_list).pop_back();
+            }
+            // Build display string
+            std::string display;
+            for (size_t i = 0; i < id(tag_list).size(); i++) {
+              if (i > 0) display += "\n";
+              display += id(tag_list)[i];
+            }
+            lv_label_set_text(id(lbl_tags), display.c_str());
 
 sensor:
   - platform: axp2101
@@ -189,66 +221,6 @@ binary_sensor:
   - platform: status
     name: "M5Core2 Status"
     entity_category: diagnostic
-
-  - platform: homeassistant
-    id: ha_l1
-    entity_id: ${l1_entity}
-    publish_initial_state: true
-    on_state:
-      then:
-        - lvgl.widget.update:
-            id: btn_l1
-            state:
-              checked: !lambda return x;
-        - lvgl.label.update:
-            id: lbl_l1
-            text: !lambda |-
-              return std::string("${l1_name}\n") + (x ? "ON" : "OFF");
-
-  - platform: homeassistant
-    id: ha_l2
-    entity_id: ${l2_entity}
-    publish_initial_state: true
-    on_state:
-      then:
-        - lvgl.widget.update:
-            id: btn_l2
-            state:
-              checked: !lambda return x;
-        - lvgl.label.update:
-            id: lbl_l2
-            text: !lambda |-
-              return std::string("${l2_name}\n") + (x ? "ON" : "OFF");
-
-  - platform: homeassistant
-    id: ha_l3
-    entity_id: ${l3_entity}
-    publish_initial_state: true
-    on_state:
-      then:
-        - lvgl.widget.update:
-            id: btn_l3
-            state:
-              checked: !lambda return x;
-        - lvgl.label.update:
-            id: lbl_l3
-            text: !lambda |-
-              return std::string("${l3_name}\n") + (x ? "ON" : "OFF");
-
-  - platform: homeassistant
-    id: ha_l4
-    entity_id: ${l4_entity}
-    publish_initial_state: true
-    on_state:
-      then:
-        - lvgl.widget.update:
-            id: btn_l4
-            state:
-              checked: !lambda return x;
-        - lvgl.label.update:
-            id: lbl_l4
-            text: !lambda |-
-              return std::string("${l4_name}\n") + (x ? "ON" : "OFF");
 
 
 output:
@@ -289,7 +261,7 @@ spi:
 font:
   - file: "gfonts://Roboto"
     id: roboto
-    size: 24
+    size: 18
 
 display:
   - platform: mipi_spi
@@ -410,116 +382,29 @@ lvgl:
   touchscreens:
     - touchscreen_id: ts
 
-  theme:
-    button:
-      bg_color: 0x303030        # OFF
-      text_color: 0xFFFFFF
-      border_width: 0
-      bg_opa: COVER
-      checked:                  # ON
-        bg_color: 0x1B5E20
-        text_color: 0xFFFFFF
-
-  style_definitions:
-    - id: light_btn
-      radius: 16
-      pad_all: 10
-      outline_width: 0
-
-    - id: grid_root
-      pad_all: 10
-      bg_opa: TRANSP
-      border_opa: TRANSP
-
   pages:
     - id: main_page
       widgets:
         - obj:
-            align: CENTER
+            align: TOP_MID
             width: 320
             height: 240
-            styles: grid_root
-            layout:
-              type: GRID
-              grid_columns: [FR(1), FR(1)]
-              grid_rows: [FR(1), FR(1)]
-              pad_row: 10
-              pad_column: 10
-
+            pad_all: 8
+            bg_color: 0x000000
+            bg_opa: COVER
+            border_width: 0
             widgets:
-              - button:
-                  id: btn_l1
-                  checkable: true
-                  styles: light_btn
-                  grid_cell_column_pos: 0
-                  grid_cell_row_pos: 0
-                  grid_cell_x_align: STRETCH
-                  grid_cell_y_align: STRETCH
-                  widgets:
-                    - label:
-                        id: lbl_l1
-                        align: CENTER
-                        text: "${l1_name}\n--"
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: ${l1_entity}
-
-              - button:
-                  id: btn_l2
-                  checkable: true
-                  styles: light_btn
-                  grid_cell_column_pos: 1
-                  grid_cell_row_pos: 0
-                  grid_cell_x_align: STRETCH
-                  grid_cell_y_align: STRETCH
-                  widgets:
-                    - label:
-                        id: lbl_l2
-                        align: CENTER
-                        text: "${l2_name}\n--"
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: ${l2_entity}
-
-              - button:
-                  id: btn_l3
-                  checkable: true
-                  styles: light_btn
-                  grid_cell_column_pos: 0
-                  grid_cell_row_pos: 1
-                  grid_cell_x_align: STRETCH
-                  grid_cell_y_align: STRETCH
-                  widgets:
-                    - label:
-                        id: lbl_l3
-                        align: CENTER
-                        text: "${l3_name}\n--"
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: ${l3_entity}
-
-              - button:
-                  id: btn_l4
-                  checkable: true
-                  styles: light_btn
-                  grid_cell_column_pos: 1
-                  grid_cell_row_pos: 1
-                  grid_cell_x_align: STRETCH
-                  grid_cell_y_align: STRETCH
-                  widgets:
-                    - label:
-                        id: lbl_l4
-                        align: CENTER
-                        text: "${l4_name}\n--"
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: ${l4_entity}
+              - label:
+                  align: TOP_MID
+                  text: "RFID Tags"
+                  text_color: 0x00E676
+                  text_font: roboto
+              - label:
+                  id: lbl_tags
+                  align: TOP_LEFT
+                  y: 28
+                  width: 304
+                  text: "Waiting for tags..."
+                  text_color: 0xFFFFFF
+                  text_font: roboto
 

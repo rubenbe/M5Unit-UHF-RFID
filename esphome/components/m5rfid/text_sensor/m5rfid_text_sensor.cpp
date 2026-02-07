@@ -23,7 +23,7 @@ void M5RFIDTextSensor::setup() {
   scanstate_ = 0;
   ESP_LOGD(TAG, "Starting setup");
   RFID._debug = 1;
-  Serial2.begin(115200, SERIAL_8N1, 32, 26);
+  Serial2.begin(115200, SERIAL_8N1, rx_pin_, tx_pin_);
 
   // Initial delay to let Serial2 stabilize
   delay(100);
@@ -151,6 +151,7 @@ void M5RFIDTextSensor::cleanup_old_tags() {
 
 void M5RFIDTextSensor::dump_config() {
   ESP_LOGCONFIG(TAG, "M5RFID Text Sensor:");
+  ESP_LOGCONFIG(TAG, "  RX pin: %d, TX pin: %d", rx_pin_, tx_pin_);
   ESP_LOGCONFIG(TAG, "  Burst poll cycles: %d", burst_poll_cycles_);
   ESP_LOGCONFIG(TAG, "  Dedup timeout: %d ms", dedup_timeout_ms_);
   LOG_TEXT_SENSOR("  ", "EPC", this);
