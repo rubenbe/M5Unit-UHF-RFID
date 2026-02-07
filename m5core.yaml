@@ -119,6 +119,7 @@ web_server_base:
 
 web_server:
   port: 80
+  js_include: "web_custom.js"
 
 i2c:
   - id: bus_a
