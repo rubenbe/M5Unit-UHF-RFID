@@ -352,11 +352,22 @@ touchscreen:
             const uint32_t now = millis();
             if (now - id(last_pwr_ms) < 800) return;
 
+            // Any touch wakes the screen
+            if (!id(backlight_light).current_values.is_on()) {
+              id(last_pwr_ms) = now;
+              auto call = id(backlight_light).turn_on();
+              call.set_brightness(id(saved_brightness));
+              call.perform();
+              id(last_tag_ms) = millis();
+              return;
+            }
+
+            // Reset auto-off timer on any touch
+            id(last_tag_ms) = millis();
+
             const int x = touch.x;
             const int y = touch.y;
 
-            // Twoje logi dla B: x≈156, y=239
-            // Środek (107..213) i sam dół ekranu (>=232)
             // TouchA (left button) - toggle backlight
             if (x < 107 && y >= 232) {
               id(last_pwr_ms) = now;
