@@ -3,12 +3,17 @@
 #include "sdmmc_cmd.h"
 #include "driver/sdspi_host.h"
 #include <cstdio>
+#include <cstring>
+#include <map>
+#include <string>
 
 #define SD_MOUNT "/sdcard"
 #define SD_CS_PIN GPIO_NUM_4
 #define SD_TAG_FILE SD_MOUNT "/tags.csv"
+#define SD_RUNNERS_FILE SD_MOUNT "/runners.csv"
 
 static bool sd_ready = false;
+static std::map<std::string, std::string> runners;
 static sdmmc_card_t *sd_card = nullptr;
 
 // SPI bus already initialized by ESPHome on SPI2_HOST — skip re-init
@@ -47,21 +52,50 @@ inline bool sd_init() {
     } else {
         f = fopen(SD_TAG_FILE, "w");
         if (f) {
-            fprintf(f, "count,timestamp,epc\n");
+            fprintf(f, "count,timestamp,epc,name\n");
             fclose(f);
         }
     }
     return true;
 }
 
-inline bool sd_append_tag(int count, const char* timestamp, const char* epc) {
+inline void sd_load_runners() {
+    if (!sd_ready) return;
+    FILE *f = fopen(SD_RUNNERS_FILE, "r");
+    if (!f) {
+        ESP_LOGW("sd", "No runners.csv found");
+        return;
+    }
+    char line[128];
+    // Skip header line
+    if (fgets(line, sizeof(line), f) == nullptr) { fclose(f); return; }
+    while (fgets(line, sizeof(line), f)) {
+        char *comma = strchr(line, ',');
+        if (!comma) continue;
+        *comma = '\0';
+        char *name = comma + 1;
+        // Trim CR/LF
+        char *nl = strchr(name, '\n'); if (nl) *nl = '\0';
+        char *cr = strchr(name, '\r'); if (cr) *cr = '\0';
+        runners[std::string(line)] = std::string(name);
+    }
+    fclose(f);
+    ESP_LOGI("sd", "Loaded %d runners", (int)runners.size());
+}
+
+inline std::string sd_lookup_runner(const std::string &epc) {
+    auto it = runners.find(epc);
+    return (it != runners.end()) ? it->second : std::string();
+}
+
+inline bool sd_append_tag(int count, const char* timestamp, const char* epc, const char* name) {
     if (!sd_ready) return false;
     FILE *f = fopen(SD_TAG_FILE, "a");
     if (!f) {
         ESP_LOGW("sd", "Failed to open " SD_TAG_FILE);
         return false;
     }
-    fprintf(f, "%d,%s,%s\n", count, timestamp, epc);
+    fprintf(f, "%d,%s,%s,%s\n", count, timestamp, epc, name);
     fclose(f);
     return true;
 }

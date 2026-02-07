@@ -17,7 +17,7 @@ esphome:
         - light.turn_on:
             id: backlight_light
             brightness: !lambda return id(saved_brightness);
-        - lambda: 'sd_init();'
+        - lambda: 'sd_init(); sd_load_runners();'
     - priority: 800
       then:
         - lambda: |-
@@ -263,9 +263,10 @@ text_sensor:
                       id(tag_order).insert(id(tag_order).begin(), epc);
                       if (!id(boot_logged)) {
                         id(boot_logged) = true;
-                        sd_append_tag(0, ts_full, "BOOT");
+                        sd_append_tag(0, ts_full, "BOOT", "");
                       }
-                      sd_append_tag((int)times.size(), ts_full, epc.c_str());
+                      std::string runner = sd_lookup_runner(epc);
+                      sd_append_tag((int)times.size(), ts_full, epc.c_str(), runner.c_str());
                     }
                   } else {
                     it->second.second = ts_str;
@@ -283,7 +284,10 @@ text_sensor:
                     auto &epc_key = order[i];
                     std::string short_epc = (epc_key.length() > 8) ? epc_key.substr(epc_key.length() - 8) : epc_key;
                     auto &t = times[epc_key];
-                    display += short_epc + " " + t.first + "-" + t.second;
+                    std::string name = sd_lookup_runner(epc_key);
+                    display += short_epc;
+                    if (!name.empty()) display += " " + name;
+                    display += " " + t.first + "-" + t.second;
                   }
                   lv_label_set_text(id(lbl_tags), display.c_str());
 
