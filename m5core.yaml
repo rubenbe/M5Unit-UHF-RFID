@@ -152,6 +152,10 @@ globals:
     type: uint32_t
     restore_value: no
     initial_value: '0'
+  - id: boot_logged
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
 switch:
   - platform: template
@@ -397,6 +401,13 @@ interval:
           char title[48];
           const char *sd = sd_ready ? " [SD]" : "";
           if (now.is_valid()) {
+            if (!id(boot_logged)) {
+              id(boot_logged) = true;
+              char ts[20];
+              snprintf(ts, sizeof(ts), "%04d-%02d-%02d %02d:%02d:%02d",
+                       now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
+              sd_append_tag(ts, "BOOT");
+            }
             snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d%s",
                      (int)id(tag_times).size(), now.hour, now.minute, now.second, sd);
           } else {
