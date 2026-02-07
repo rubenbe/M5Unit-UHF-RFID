@@ -54,9 +54,17 @@ wifi:
 captive_portal:
 
 time:
+  - platform: pcf8563
+    id: rtc_time
+    i2c_id: bus_a
+    address: 0x51
+    timezone: Europe/Warsaw
+
   - platform: sntp
     id: sntp_time
     timezone: Europe/Warsaw
+    on_time_sync:
+      - pcf8563.write_time: rtc_time
 
 datetime:
   - platform: template
@@ -72,6 +80,7 @@ datetime:
           settimeofday(&tv, nullptr);
           ESP_LOGI("rtc", "RTC set to %04d-%02d-%02d %02d:%02d:%02d",
                    x.year, x.month, x.day_of_month, x.hour, x.minute, x.second);
+      - pcf8563.write_time: rtc_time
 
 # TBD: Disable for production
 web_server:
@@ -205,7 +214,7 @@ text_sensor:
 
             // Timestamp
             char ts[9] = "??:??:??";
-            auto now = id(sntp_time).now();
+            auto now = id(rtc_time).now();
             if (now.is_valid()) {
               snprintf(ts, sizeof(ts), "%02d:%02d:%02d", now.hour, now.minute, now.second);
             }
