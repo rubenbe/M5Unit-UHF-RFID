@@ -243,11 +243,13 @@ text_sensor:
             condition:
               lambda: 'return id(rtc_time).now().is_valid();'
             then:
-              - light.turn_on:
-                  id: backlight_light
-                  brightness: !lambda return id(saved_brightness);
               - lambda: |-
                   id(last_tag_ms) = millis();
+                  if (!id(backlight_light).current_values.is_on()) {
+                    auto call = id(backlight_light).turn_on();
+                    call.set_brightness(id(saved_brightness));
+                    call.perform();
+                  }
                   // Parse CSV: "EPC,RSSI"
                   std::string val = id(m5rfid_sensor).state;
                   auto comma = val.find(',');
