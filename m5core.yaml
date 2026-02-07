@@ -226,21 +226,14 @@ text_sensor:
             if (it == times.end()) {
               if (times.size() < 100) {
                 times[epc] = std::make_pair(ts_str, ts_str);
-                // Add to display order (newest first)
                 id(tag_order).insert(id(tag_order).begin(), epc);
               }
             } else {
               it->second.second = ts_str;
-              // Move to top of display order
               auto &order = id(tag_order);
               order.erase(std::remove(order.begin(), order.end(), epc), order.end());
               order.insert(order.begin(), epc);
             }
-
-            // Update title with unique count
-            char title[32];
-            snprintf(title, sizeof(title), "RFID Tags (%d)", (int)times.size());
-            lv_label_set_text(id(lbl_title), title);
 
             // Build display string (max 8 visible rows)
             std::string display;
@@ -355,6 +348,19 @@ touchscreen:
             }
 
 interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          auto now = id(rtc_time).now();
+          char title[40];
+          if (now.is_valid()) {
+            snprintf(title, sizeof(title), "RFID Tags (%d) %02d:%02d:%02d",
+                     (int)id(tag_times).size(), now.hour, now.minute, now.second);
+          } else {
+            snprintf(title, sizeof(title), "RFID Tags (%d)", (int)id(tag_times).size());
+          }
+          lv_label_set_text(id(lbl_title), title);
+
   - interval: 30s
     then:
       - lambda: |-
