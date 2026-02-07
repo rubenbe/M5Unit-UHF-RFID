@@ -207,52 +207,54 @@ text_sensor:
     tx_pin: 32
     on_value:
       then:
-        - script.execute: melody
-        - lambda: |-
-            // Parse CSV: "EPC,RSSI"
-            std::string val = x;
-            auto comma = val.find(',');
-            std::string epc = (comma != std::string::npos) ? val.substr(0, comma) : val;
+        - if:
+            condition:
+              lambda: 'return id(rtc_time).now().is_valid();'
+            then:
+              - script.execute: melody
+              - lambda: |-
+                  // Parse CSV: "EPC,RSSI"
+                  std::string val = id(m5rfid_sensor).state;
+                  auto comma = val.find(',');
+                  std::string epc = (comma != std::string::npos) ? val.substr(0, comma) : val;
 
-            // Timestamps
-            char ts[9] = "??:??:??";
-            char ts_full[20] = "????-??-?? ??:??:??";
-            auto now = id(rtc_time).now();
-            if (now.is_valid()) {
-              snprintf(ts, sizeof(ts), "%02d:%02d:%02d", now.hour, now.minute, now.second);
-              snprintf(ts_full, sizeof(ts_full), "%04d-%02d-%02d %02d:%02d:%02d",
-                       now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
-            }
-            std::string ts_str(ts);
+                  // Timestamps
+                  char ts[9];
+                  char ts_full[20];
+                  auto now = id(rtc_time).now();
+                  snprintf(ts, sizeof(ts), "%02d:%02d:%02d", now.hour, now.minute, now.second);
+                  snprintf(ts_full, sizeof(ts_full), "%04d-%02d-%02d %02d:%02d:%02d",
+                           now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
+                  std::string ts_str(ts);
 
-            // Update first/last times (max 100 unique tags)
-            auto &times = id(tag_times);
-            auto it = times.find(epc);
-            if (it == times.end()) {
-              if (times.size() < 100) {
-                times[epc] = std::make_pair(ts_str, ts_str);
-                id(tag_order).insert(id(tag_order).begin(), epc);
-                sd_append_tag(ts_full, epc.c_str());
-              }
-            } else {
-              it->second.second = ts_str;
-              auto &order = id(tag_order);
-              order.erase(std::remove(order.begin(), order.end(), epc), order.end());
-              order.insert(order.begin(), epc);
-            }
+                  // Update first/last times (max 100 unique tags)
+                  auto &times = id(tag_times);
+                  auto it = times.find(epc);
+                  if (it == times.end()) {
+                    if (times.size() < 100) {
+                      times[epc] = std::make_pair(ts_str, ts_str);
+                      id(tag_order).insert(id(tag_order).begin(), epc);
+                      sd_append_tag(ts_full, epc.c_str());
+                    }
+                  } else {
+                    it->second.second = ts_str;
+                    auto &order = id(tag_order);
+                    order.erase(std::remove(order.begin(), order.end(), epc), order.end());
+                    order.insert(order.begin(), epc);
+                  }
 
-            // Build display string (max 8 visible rows)
-            std::string display;
-            auto &order = id(tag_order);
-            size_t limit = std::min(order.size(), (size_t)8);
-            for (size_t i = 0; i < limit; i++) {
-              if (i > 0) display += "\n";
-              auto &epc_key = order[i];
-              std::string short_epc = (epc_key.length() > 8) ? epc_key.substr(epc_key.length() - 8) : epc_key;
-              auto &t = times[epc_key];
-              display += short_epc + " " + t.first + "-" + t.second;
-            }
-            lv_label_set_text(id(lbl_tags), display.c_str());
+                  // Build display string (max 8 visible rows)
+                  std::string display;
+                  auto &order = id(tag_order);
+                  size_t limit = std::min(order.size(), (size_t)8);
+                  for (size_t i = 0; i < limit; i++) {
+                    if (i > 0) display += "\n";
+                    auto &epc_key = order[i];
+                    std::string short_epc = (epc_key.length() > 8) ? epc_key.substr(epc_key.length() - 8) : epc_key;
+                    auto &t = times[epc_key];
+                    display += short_epc + " " + t.first + "-" + t.second;
+                  }
+                  lv_label_set_text(id(lbl_tags), display.c_str());
 
 sensor:
   - platform: axp2101
