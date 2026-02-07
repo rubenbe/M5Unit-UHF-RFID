@@ -254,7 +254,7 @@ text_sensor:
                   // Build display string (max 8 visible rows)
                   std::string display;
                   auto &order = id(tag_order);
-                  size_t limit = std::min(order.size(), (size_t)8);
+                  size_t limit = std::min(order.size(), (size_t)9);
                   for (size_t i = 0; i < limit; i++) {
                     if (i > 0) display += "\n";
                     auto &epc_key = order[i];
