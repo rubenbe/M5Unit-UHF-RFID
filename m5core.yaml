@@ -706,9 +706,10 @@ lvgl:
 
                             auto ap_conf = wifi::global_wifi_component->get_ap();
                             std::string ssid = ap_conf.get_ssid();
+                            std::string pass = ap_conf.get_password();
                             ESP_LOGI("wifi", "AP mode: %s", ssid.c_str());
                             lv_label_set_text(id(lbl_ap_info),
-                              ("SSID: " + ssid + "\nIP: 192.168.4.1").c_str());
+                              ("SSID: " + ssid + "\nPass: " + pass + "\nIP: 192.168.4.1").c_str());
                           } else {
                             // Restore STA config
                             wifi::global_wifi_component->clear_sta();
