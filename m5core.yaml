@@ -209,6 +209,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: ap_mode_on
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
 switch:
   - platform: template
@@ -445,6 +449,27 @@ touchscreen:
               id(power_off).execute();
             }
 
+            // TouchC (right button) - toggle settings page
+            if (x > 213 && y >= 232) {
+              id(last_pwr_ms) = now;
+              if (id(main_page)->is_showing()) {
+                // Sync slider to current brightness
+                lv_slider_set_value(id(bright_slider), (int)(id(saved_brightness) * 100), LV_ANIM_OFF);
+                char pct[8];
+                snprintf(pct, sizeof(pct), "%d%%", (int)(id(saved_brightness) * 100));
+                lv_label_set_text(id(lbl_bright_val), pct);
+                // Sync AP switch
+                if (id(ap_mode_on)) {
+                  lv_obj_add_state(id(ap_sw), LV_STATE_CHECKED);
+                } else {
+                  lv_obj_clear_state(id(ap_sw), LV_STATE_CHECKED);
+                }
+                id(main_page)->get_parent()->show_page(id(settings_page)->index, LV_SCR_LOAD_ANIM_NONE, 0);
+              } else {
+                id(main_page)->get_parent()->show_page(id(main_page)->index, LV_SCR_LOAD_ANIM_NONE, 0);
+              }
+            }
+
 interval:
   - interval: 1s
     then:
@@ -599,5 +624,111 @@ lvgl:
                   text_align: RIGHT
                   text: ""
                   text_color: 0xFFFFFF
+                  text_font: roboto
+    - id: settings_page
+      widgets:
+        - obj:
+            align: TOP_MID
+            width: 320
+            height: 240
+            pad_all: 8
+            bg_color: 0x000000
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+            widgets:
+              - label:
+                  align: TOP_LEFT
+                  text: "Settings"
+                  text_color: 0x00E676
+                  text_font: roboto
+              - label:
+                  align: TOP_LEFT
+                  y: 35
+                  text: "Brightness"
+                  text_color: 0xAAAAAA
+                  text_font: roboto
+              - slider:
+                  id: bright_slider
+                  align: TOP_LEFT
+                  y: 62
+                  width: 230
+                  min_value: 5
+                  max_value: 100
+                  value: 60
+                  on_value:
+                    then:
+                      - lambda: |-
+                          int val = (int)x;
+                          float brightness = val / 100.0f;
+                          auto call = id(backlight_light).turn_on();
+                          call.set_brightness(brightness);
+                          call.perform();
+                          id(saved_brightness) = brightness;
+                          id(last_tag_ms) = millis();
+                          char pct[8];
+                          snprintf(pct, sizeof(pct), "%d%%", val);
+                          lv_label_set_text(id(lbl_bright_val), pct);
+              - label:
+                  id: lbl_bright_val
+                  align: TOP_LEFT
+                  x: 245
+                  y: 57
+                  text: "60%"
+                  text_color: 0xFFFFFF
+                  text_font: roboto
+              - label:
+                  align: TOP_LEFT
+                  y: 110
+                  text: "WiFi AP"
+                  text_color: 0xAAAAAA
+                  text_font: roboto
+              - switch:
+                  id: ap_sw
+                  align: TOP_RIGHT
+                  y: 105
+                  on_click:
+                    then:
+                      - lambda: |-
+                          bool is_on = lv_obj_has_state(id(ap_sw), LV_STATE_CHECKED);
+                          if (is_on == id(ap_mode_on)) return;
+                          id(ap_mode_on) = is_on;
+
+                          static wifi::WiFiAP saved_sta;
+
+                          if (is_on) {
+                            // Save STA config, then remove it so component falls back to AP
+                            saved_sta = wifi::global_wifi_component->get_sta();
+                            wifi::global_wifi_component->clear_sta();
+                            wifi::global_wifi_component->set_ap_timeout(100);
+                            wifi::global_wifi_component->disable();
+                            wifi::global_wifi_component->enable();
+
+                            auto ap_conf = wifi::global_wifi_component->get_ap();
+                            std::string ssid = ap_conf.get_ssid();
+                            ESP_LOGI("wifi", "AP mode: %s", ssid.c_str());
+                            lv_label_set_text(id(lbl_ap_info),
+                              ("SSID: " + ssid + "\nIP: 192.168.4.1").c_str());
+                          } else {
+                            // Restore STA config
+                            wifi::global_wifi_component->clear_sta();
+                            wifi::global_wifi_component->add_sta(saved_sta);
+                            wifi::global_wifi_component->set_ap_timeout(60000);
+                            wifi::global_wifi_component->disable();
+                            wifi::global_wifi_component->enable();
+                            ESP_LOGI("wifi", "STA mode restored");
+                            lv_label_set_text(id(lbl_ap_info), "Reconnecting...");
+                          }
+              - label:
+                  id: lbl_ap_info
+                  align: TOP_LEFT
+                  y: 145
+                  text: ""
+                  text_color: 0x888888
+                  text_font: roboto
+              - label:
+                  align: BOTTOM_RIGHT
+                  text: "press C: back"
+                  text_color: 0x555555
                   text_font: roboto
 
