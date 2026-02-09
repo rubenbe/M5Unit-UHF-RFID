@@ -220,6 +220,13 @@ switch:
     id: allow_poweroff
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
+  - platform: template
+    name: "Buzzer"
+    id: buzzer_switch
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    icon: "mdi:volume-high"
+    entity_category: config
 
 deep_sleep:
   id: deep_sleep_ctrl
@@ -240,6 +247,19 @@ script:
           uint8_t reg;
           id(axp_raw).read_byte(0x69, &reg);
           id(axp_raw).write_byte(0x69, (reg & 0xF9) | 0x01);
+
+  - id: melody
+    mode: restart
+    then:
+      - output.turn_on: buzzer
+      - output.ledc.set_frequency:
+          id: buzzer
+          frequency: "4000Hz"
+      - output.set_level:
+          id: buzzer
+          level: "50%"
+      - delay: 50ms
+      - output.turn_off: buzzer
 
   - id: power_off
     mode: single
@@ -273,6 +293,11 @@ text_sensor:
               lambda: 'return id(rtc_time).now().is_valid();'
             then:
               - script.execute: blink_led
+              - if:
+                  condition:
+                    switch.is_on: buzzer_switch
+                  then:
+                    - script.execute: melody
               - lambda: |-
                   id(last_tag_ms) = millis();
                   if (!id(backlight_light).current_values.is_on()) {
@@ -359,6 +384,9 @@ binary_sensor:
 
 
 output:
+  - platform: ledc
+    pin: GPIO19
+    id: buzzer
   - platform: template
     id: backlight_out
     type: float
