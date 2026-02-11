@@ -213,6 +213,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: is_new_tag
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
 switch:
   - platform: template
@@ -292,12 +296,6 @@ text_sensor:
             condition:
               lambda: 'return id(rtc_time).now().is_valid();'
             then:
-              - script.execute: blink_led
-              - if:
-                  condition:
-                    switch.is_on: buzzer_switch
-                  then:
-                    - script.execute: melody
               - lambda: |-
                   id(last_tag_ms) = millis();
                   if (!id(backlight_light).current_values.is_on()) {
@@ -322,7 +320,8 @@ text_sensor:
                   // Update first/last times (max 100 unique tags)
                   auto &times = id(tag_times);
                   auto it = times.find(epc);
-                  if (it == times.end()) {
+                  bool is_new = (it == times.end());
+                  if (is_new) {
                     if (times.size() < 100) {
                       times[epc] = std::make_pair(ts_str, ts_str);
                       id(tag_order).insert(id(tag_order).begin(), epc);
@@ -335,14 +334,23 @@ text_sensor:
                     }
                   } else {
                     it->second.second = ts_str;
-                    auto &order = id(tag_order);
-                    order.erase(std::remove(order.begin(), order.end(), epc), order.end());
-                    order.insert(order.begin(), epc);
                   }
-
+                  id(is_new_tag) = is_new;
+              - if:
+                  condition:
+                    lambda: 'return id(is_new_tag);'
+                  then:
+                    - script.execute: blink_led
+                    - if:
+                        condition:
+                          switch.is_on: buzzer_switch
+                        then:
+                          - script.execute: melody
+              - lambda: |-
                   // Build display strings (left: tag+name, right: times)
                   std::string left, right;
                   auto &order = id(tag_order);
+                  auto &times = id(tag_times);
                   size_t limit = std::min(order.size(), (size_t)9);
                   for (size_t i = 0; i < limit; i++) {
                     if (i > 0) { left += "\n"; right += "\n"; }
