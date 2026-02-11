@@ -217,6 +217,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: buzzer_enabled
+    type: bool
+    restore_value: no
+    initial_value: 'true'
 
 switch:
   - platform: template
@@ -227,10 +231,18 @@ switch:
   - platform: template
     name: "Buzzer"
     id: buzzer_switch
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
     icon: "mdi:volume-high"
     entity_category: config
+    restore_mode: ALWAYS_ON
+    lambda: 'return id(buzzer_enabled);'
+    turn_on_action:
+      - globals.set:
+          id: buzzer_enabled
+          value: 'true'
+    turn_off_action:
+      - globals.set:
+          id: buzzer_enabled
+          value: 'false'
 
 deep_sleep:
   id: deep_sleep_ctrl
